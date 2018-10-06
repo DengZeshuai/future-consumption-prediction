@@ -2,14 +2,14 @@ import pandas as pd
 import numpy as np
 def load_data(filename,sheet_number):
     """读取训练数据"""
-    return pd.read_excel(filename,sheet_name=sheet_number)
+    return pd.read_excel(filename, sheet_name=sheet_number)
      
 def change_data_to_input(data, input_size=1,seq_length=24):
     """把数据中转化为(samples_num, input_size, seq_length)维度的数组，每个样本的维度是(input_size,seq_length)"""
     data = np.array(data)
-    # print(data.shape)
+    # print(data)
     data = data.reshape(input_size, data.size//input_size)    # 注意: 如果data的size不整除input_size，那么多出来的那些数据，numpy是如何解决的
-    
+    # print(data)
     s = []
     # label = []
     iter_num = ( data.size//input_size ) - seq_length  #// seq_length
@@ -38,10 +38,11 @@ def preprocess_data(data, input_size=1, seq_length=10, month=None):
 
 if __name__ == "__main__":
     data_file = "data/air-condition-consumption.xlsx"
-    sheet_number=2
+    sheet_number=0
+    month = 7
     input_size=1
     seq_length=24
-    data = load_data(data_file,sheet_number=sheet_number)
+    data = load_data(data_file, sheet_number=sheet_number)
     # 对空调的数据进行刷选，仅使用12月份的数据对模型进行训练，同时对数据进行预处理
-    data_train, data_test = preprocess_data(data, month=12)
+    data_train, data_test = preprocess_data(data, month=month)
 

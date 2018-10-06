@@ -15,7 +15,7 @@ def get_batch(data, batch_size, episode):
     batch_start  = last_batch_end % (data.shape[0] - batch_size -1)  # 对取样的初始位置进行处理
     x_index = np.arange(batch_size) + batch_start # 不随机对样本的进行抽取
     y_index = x_index + 1
-    if batch_start==0:
+    if batch_start == 0:
         print("new epoch")
     # 在所有样本中取出x和y
     x = data[x_index]
@@ -76,7 +76,10 @@ if __name__=="__main__":
         'seq_length': 10,
         'learning_rate': 0.05
     }
-    
+
+    sheet_number = 0 # 读取第几张表格
+    month = 7 # 读取哪个月份的数据
+
     # 导入数据
     if os.path.exists("data/air-condition-consumption.xlsx"):
         data_file = "data/air-condition-consumption.xlsx"
@@ -86,10 +89,10 @@ if __name__=="__main__":
         print(data_file)
     else:
         print("data_file not found! ") 
-    sheet_number=2
+    
     
     data = load_data(data_file,sheet_number=sheet_number)
-    data_train, data_test = preprocess_data(data, input_size=rnn_config['input_size'], seq_length=rnn_config['seq_length'], month=12)
+    data_train, data_test = preprocess_data(data, input_size=rnn_config['input_size'], seq_length=rnn_config['seq_length'], month=month)
 
 
     # 初始化rnn模型
@@ -104,7 +107,7 @@ if __name__=="__main__":
     init = tf.global_variables_initializer()
     sess.run(init)
 
-    if sys.argv[1] is not None and sys.argv[1] == "train": 
-        train(data_train, model, sess)        
-    else:
-        test(data_test, model, sess)
+    # if sys.argv[1] is not None and sys.argv[1] == "train": 
+    train(data_train, model, sess)        
+    # else:
+        # test(data_test, model, sess)
