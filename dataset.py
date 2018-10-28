@@ -1,52 +1,55 @@
 import pandas as pd
 import numpy as np
 import torch
-import torch.data as data
-import torch.transform
-def transforms():
-    return 
+import torch.utils.data as data
+import sys
+
+def transform(self, data):
+    self.data.to_csv('a.csv', index=False,header=False, float_format='%.3f')
+
 
 def excel_loader(filename,sheet_number):
     """读取训练数据"""
+    # data = pd.read_excel(filename, sheet_name=0) #'air-condition-consumption2.xlsx'
+    # print(data.values[:,:])
     data = pd.read_excel(filename, sheet_name=sheet_number)
-    return data.values[:,3:]
+    data['时间'] = data['时间'].dt.dayofyear
+    return data.values
 
 class PowerDataset(data.Dataset):
     def __init__(self, opt, loader=excel_loader, transform=None):
         super(PowerDataset, self).__init__()
         self.opt = opt
         self.loader = loader
-        self.data = self.loader(opt.filename, opt.sheet_number).values
+        self.data = self.loader(opt.filename, opt.sheet_number)
+        # pd.DataFrame(self.data).to_csv('data.csv')
+        self.data = self.pre_process(self.data)
+        self.transform = transform
     
     def __getitem__(self, index):
-        input, target = self.get_batch(self.data, index)
+        input = self.data[index:index+self.opt.seq_length, :]
+        target = self.data[index+self.opt.seq_length+1, -1]
+        if self.transform is not None:
+            # print(input.shape, target.shape)
+            # input = input.reshape(input.shape[0], input.shape[1], 1)
+            # target = target.reshape(1, 1, 1)
+            input, target = torch.Tensor(input), torch.Tensor(target.reshape(1, 1))
+            # print(input.size(), target.size())
         return input, target
 
     def __len__(self):
-        return len(self.data.size - self.opt.seq_length)
+        return self.data.shape[0] - self.opt.seq_length - 1
     
-    def get_batch(self, data, index):
-        """对数据进行分批取样操作"""
-        # 随机对data里面的样本进行抽取，生成随机抽取样本的索引
-        # x_index = np.random.randint(low=0, high=data.shape[0]-1, size=self.batch_size)
-        batch_start = np.random.randint(low=0, high=data.shape[0] * data.shape[1] - 1 - (1 + self.opt.seq_length)) # 随机取样的横轴坐标 (1 + self.opt.seq_length)是训练样本加label的长度, (data.shape[0] * data.shape[1] - 1)是总数据的矩阵最大下标 0 ~ max
-        x_start = batch_start % data.shape[1] 
-        y_start = batch_start % data.shape[0]
-        tmp = x_start + self.opt.seq_length - 1 
-        x_end =  tmp % data.shape[1] # 第一列是0点,所以对24取模
-        y_end = y_start + 1 if tmp >= data.shape[1] else y_start
-        # 在所有样本中取出input sequence, 从data[y_start, x_start]一直取到 data[y_end, x_end], target则为 data[y_end, x_end+1]
-        if tmp < data.shape[1]:
-            if x_end+1 < data.shape[1]:
-                input = data[y_start, x_start:x_end+1]  
-                target = data[y_end, x_end+1]
-            else:
-                input = data[y_start, x_start:]
-                target = data[y_end+1, 0]
-        else:
-            input = []
-            input.append(list(data[y_start, x_start:]))
-            input.append(list(data[y_end, 0:x_end+1]))
-            np.array(input)
-            target = data[y_end, x_end+1]
-        return input, target
+    def pre_process(self, data):
+        #天数，小时，是否供冷季节，是否工作日，电耗
+        a = np.zeros((len(data)*24,5))
+        time_hours = [i for i in range(24)]
+        for i in range(0,len(data)):
+            a_index = i*24
+            a[a_index:a_index+24, 0] = data[i,0]
+            a[a_index:a_index+24, 1] = time_hours
+            a[a_index:a_index+24, 2] = data[i,-2]
+            a[a_index:a_index+24, 3] = data[i,-1] 
+            a[a_index:a_index+24, 4] = data[i, 1:-2]
+        # pd.DataFrame(a).to_csv('a.csv')
+        return a
