@@ -4,7 +4,7 @@ from torch.autograd import Variable
 
 
 class LSTM(nn.Module):
-    def __init__(self, opt, batch_first=True, dropout=0):
+    def __init__(self, opt, batch_first=True, dropout=0.5):
         super(LSTM, self).__init__()
         self.opt = opt
         self.input_size = opt.input_size
@@ -21,15 +21,16 @@ class LSTM(nn.Module):
         self.fc2 = nn.Linear(self.seq_length, self.output_size)
 
     def init_hidden(self):
-        return (torch.zeros(1, self.opt.batch_size, self.hidden_dim),
-                torch.zeros(1, self.opt.batch_size, self.hidden_dim))
+        return (torch.zeros(self.num_layers, self.opt.batch_size, self.hidden_dim),
+                torch.zeros(self.num_layers, self.opt.batch_size, self.hidden_dim))
     
     def forward(self, sequence):
-        # print(sequence.size())
+        # print('sequence.size()', sequence.size())
+        
         lstm_out, self.hidden = self.lstm(sequence, self.hidden)
         # print(lstm_out.size())
         output = self.fc1(lstm_out)
+        # # print(output.size())
+        # output = self.fc2(output.view(output.size(0), 1, -1))
         # print(output.size())
-        output = self.fc2(output.view(output.size(0), 1, -1))
-        # print(output.size())
-        return output
+        return output[:,-1,:]
